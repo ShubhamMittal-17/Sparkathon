@@ -7,6 +7,7 @@ import { HomePage } from './pages/homepage'
 import { SignUp } from './pages/SignUp'
 import { SignIn } from './pages/SignIn'
 import {Cart} from './pages/Cart'
+import { RouteMap } from './pages/Route'
 
 function App() {
 
@@ -17,6 +18,7 @@ function App() {
         <Route path="/signin" element={<SignIn/>}/>
         <Route path="/signup" element={<SignUp/>}/>
         <Route path="/cart" element={<Cart/>}/>
+        <Route path="/route" element={<RouteMap/>}/>
       </Route>
     </Routes>
   )

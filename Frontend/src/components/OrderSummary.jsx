@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Truck, Shield, CreditCard } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const OrderSummary = ({ items }) => {
 
@@ -36,11 +37,13 @@ const OrderSummary = ({ items }) => {
       </div>
 
       {/* Checkout Button */}
+      <Link to="/route">
       <button
         className="w-full bg-blue-600 text-white py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
       >
         Generate Route
       </button>
+      </Link>
 
       
     </div>
