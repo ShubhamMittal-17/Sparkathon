@@ -1,12 +1,65 @@
 import React from 'react';
-import { useNavigate } from 'react-router';
-
-
+import { Navigate, useNavigate } from 'react-router';
+import { useContext } from 'react';
+import { UserContext } from '../App';
+import {toast, Toaster} from 'react-hot-toast';
+import { storeInSession } from '../common/session';
+import axios from 'axios';
 
 export const SignIn = () => {
     const navigate = useNavigate()
+      let {userAuth: {access_token},setUserAuth} = useContext(UserContext);
+
+
+    const userAuthThroughServer = (formData) => {
+        axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/signin" , formData)
+        .then(({data}) => {
+            storeInSession("user",JSON.stringify(data));
+            setUserAuth(data);
+        })
+        .catch(({response})=>{
+            toast.error(response.data.error);
+        })
+    }
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        let emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/; // regex for email
+        let passwordRegex = /^(?=.*[^A-Za-z0-9])(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/; // regex for password
+
+        let form = new FormData(e.target);
+        let formData = {};
+
+         for (let [key, value] of form.entries()) {
+            formData[key] = value;
+         }
+        
+
+        let {email,password} = formData;
+        console.log({email});
+
+        if(!email?.length){
+            return toast.error("Enter Email");
+        }
+
+        if(!emailRegex.test(email)){
+             return toast.error("Email is invalid");
+        }
+
+        if(!passwordRegex.test(password)){
+            return toast.error("Password should be 6-20 characters long with a numeric, 1 uppercase, 1 lowercase and 1 special character.");
+        }
+
+        userAuthThroughServer(formData);
+        
+    }
+
     return (
+        access_token? 
+        <Navigate to="/" />:
         <div className="h-cover bg-gradient-to-br from-blue-100 via-white to-blue-200 flex items-center justify-center p-6">
+            <Toaster/>
             <div className="backdrop-blur-xl bg-white/70 shadow-xl border border-white/30 rounded-3xl p-10 w-full max-w-md relative">
 
                 <div className="flex justify-center mb-8">
@@ -18,9 +71,9 @@ export const SignIn = () => {
                 </div>
                 <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Sign In</h2>
 
-                <form className="space-y-6">
-                    <InputBox type="email" text="Email" className=""/>
-                    <InputBox type="password" text="Password"/>
+                <form id="formElement" className="space-y-6" onSubmit={handleSubmit}>
+                    <InputBox name="email" type="text" text="Email" className=""/>
+                    <InputBox name="password" type="password" text="Password"/>
 
                     <Button text="Sign In" />
                 </form>
@@ -39,10 +92,11 @@ export const SignIn = () => {
 };
 
 
-const InputBox = ({type , onChange , text})=>{
+const InputBox = ({type, name , onChange , text})=>{
     return (
         <div className="relative">
             <input onChange={onchange}
+                name={name}
                 type={type}
                 required
                 placeholder=" "
@@ -58,7 +112,7 @@ const InputBox = ({type , onChange , text})=>{
 
  const Button = ({onClick , text })=>{
     return <button
-    onClick={onClick}
+    type='submit'
     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold text-lg transition transform hover:-translate-y-0.5 hover:shadow-md">
     {text}
 </button>

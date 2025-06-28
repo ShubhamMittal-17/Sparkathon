@@ -1,1 +1,7 @@
-GET http://localhost:5000/all-products
+POST http://localhost:5000/signin
+Content-Type: application/json
+
+{
+    "email": "anki@gmail.com",
+    "password": "Ank@123"
+}

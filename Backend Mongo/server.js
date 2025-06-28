@@ -1,17 +1,125 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import 'dotenv/config'
-import Product from './Schema/Product.js';
 import cors from 'cors';
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import admin from 'firebase-admin'
+import serviceAccountKey from './sparkathon-2025-a7d10-firebase-adminsdk-fbsvc-3d46855f98.json' assert {type:"json"};
+import {getAuth} from "firebase-admin/auth"
+
+import Product from './Schema/Product.js';
+import User from './Schema/User.js';
+
 const server = express();
 let PORT = 5000;
 
 server.use(express.json());
 server.use(cors());
 
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccountKey)
+})
+
 mongoose.connect(process.env.DB_LOCATION, {
     autoIndex: true
 });
+
+let emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/; // regex for email
+let passwordRegex = /^(?=.*[^A-Za-z0-9])(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/; // regex for password
+
+const formatDataToSend = (user) => {
+    const access_token = jwt.sign({id: user._id},process.env.SECRET_ACCESS_KEY)
+
+    return{
+        access_token,
+        fullname:user.personal_info.fullname,
+        cart:user.cart
+    }
+}
+
+
+server.post("/signup",async (req,res)=>{
+    let {fullname,email,password} = req.body;
+
+    if(fullname.length < 3){
+        return res.status(400).json({"error":"Fullname must be atleast 3 characters long"});
+    }
+
+    if(!email.length){
+        return res.status(400).json({"error":"Enter Email"});
+    }
+
+    if(!emailRegex.test(email)){
+         return res.status(400).json({"error":"Email is invalid"});
+    }
+
+    if(!passwordRegex.test(password)){
+        return res.status(400).json({"error":"Password should be 6-20 characters long with a numeric, 1 uppercase, 1 lowercase and 1 special character."});
+    }
+
+     try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = new User({
+            personal_info: {
+                fullname,
+                email,
+                password: hashedPassword
+            }
+        });
+
+        const savedUser = await user.save();
+
+        return res.status(201).json(formatDataToSend(savedUser));
+
+        } catch (err) {
+            if (err.code === 11000) {
+                return res.status(409).json({ error: "Email already exists." });
+            }
+
+            return res.status(500).json({ error: err.message || "Something went wrong." });
+        }
+
+})
+
+server.post("/signin", async (req,res) => {
+    let {email,password} = req.body;
+    
+    if(!email.length){
+        return res.status(403).json({"error":"Enter Email"});
+    }
+
+    if(!emailRegex.test(email)){
+        return res.status(403).json({"error":"Email is invalid."})
+    }
+
+    User.findOne({"personal_info.email" : email}).then((user)=>{
+        if(!user){
+            return res.status(403).json({"error":"User not found"});
+        }
+
+    bcrypt.compare(password,user.personal_info.password,(err,result)=>{
+        if(err){
+            return res.status.json({"error":"Error occurred while login, please try again later."})
+        }
+        if(!result){
+            return res.status(403).json({"error":"Incorrect password."});
+        }
+        else{
+            return res.status(200).json(formatDataToSend(user));
+        }
+
+    })
+
+})
+.catch(err=>{
+        console.log(err);
+        return res.status(500).json({"error":err.message});
+    })
+})
+
+
 
 server.get('/all-products',(req,res)=>{
     Product.find()
