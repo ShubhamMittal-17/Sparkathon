@@ -5,7 +5,8 @@ import cors from 'cors';
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import admin from 'firebase-admin'
-import serviceAccountKey from './sparkathon-2025-a7d10-firebase-adminsdk-fbsvc-3d46855f98.json' assert {type:"json"};
+import serviceAccountKey from './sparkathon-2025-a7d10-firebase-adminsdk-fbsvc-e87dc30a46.json' assert {type:"json"};
+
 import {getAuth} from "firebase-admin/auth"
 
 import Product from './Schema/Product.js';
@@ -131,6 +132,107 @@ server.get('/all-products',(req,res)=>{
         return res.status(500).json({"error":err.message});
     })
 })
+
+const verifyJWT = (req,res,next) => {
+    
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(" ")[1];
+    
+    if(token == null){
+        return res.status(403).json({error: "No access token."})
+    }
+
+    jwt.verify(token,process.env.SECRET_ACCESS_KEY, (err,user) => {
+        if(err){
+            return res.status(403).json({error: "Access token is invalid."})
+        }
+
+        req.user = user.id;
+        next();
+
+    })
+
+}
+
+server.post("/add-item",verifyJWT,async (req,res)=>{
+    try {
+        const userId = req.user;
+        const { product} = req.body; 
+
+        const user = await User.findById(userId).select("cart");
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        const existingItem = user.cart.find(
+          item => item.product.toString() === product._id.toString()
+        );
+
+        if (existingItem) {
+          existingItem.quantity += 1;
+        } else {
+          user.cart.push({ product: product._id, quantity:1 });
+        }
+
+        await user.save();
+
+        return res.json({ message: "Item added to cart", cart: user.cart });
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+})
+
+server.post("/remove-item",verifyJWT,async (req,res)=>{
+    try {
+        const userId = req.user;
+        const { product} = req.body; 
+
+        const user = await User.findById(userId).select("cart");
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        const existingItem = user.cart.find(
+          item => item.product.toString() === product._id.toString()
+        );
+
+        if (existingItem) {
+          existingItem.quantity -= 1;
+        } else {
+          return res.status(404).json({error:"Not in cart"})
+        }
+        if(existingItem.quantity == 0){
+            user.cart = user.cart.filter(item => item.product.toString() !== product._id.toString())
+        }
+        await user.save();
+
+        return res.json({ message: "Item added to cart", cart: user.cart });
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+})
+
+server.get("/get-cart",verifyJWT,async (req,res) => {
+    try{
+        const userId = req.user;
+
+        const user = await User.findById(userId).select("cart").populate("cart.product");
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        let cart=user.cart;
+        return res.status(200).json({cart});
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({error:"Internal server error"});
+    }
+
+})
+
+
 
 server.listen(PORT , () => {
     console.log("Listening on 5000...")

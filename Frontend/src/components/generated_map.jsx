@@ -26,7 +26,7 @@ export const GeneratedMap = ({items}) => {
             <h2 className="block w-fit center">Navigation Path</h2>
             {
                 mapUrl == null? "":
-                <img className="w-[500px] h-[500px]" src={mapUrl} alt="Navigation path" />
+                <img className="w-[500px] " src={mapUrl} alt="Navigation path" />
             }
         </div>
     )

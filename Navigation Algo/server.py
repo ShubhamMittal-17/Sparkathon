@@ -2,10 +2,11 @@ from flask import Flask, request, send_file
 import pygame
 import io
 import pytmx
-from navigation_algo_test import generate_path, tmx_data, arrow_images
+from navigation_algo_test import generate_path, tmx_data,text_labels, arrow_images
 from flask_cors import CORS
 from PIL import Image
 import io
+import xml.etree.ElementTree as ET
 
 
 app = Flask(__name__)
@@ -52,10 +53,11 @@ def draw_map_to_surface(surface):
                     img = tmx_data.get_tile_image_by_gid(obj.gid)
                     if img:
                         surface.blit(img, (obj.x, obj.y))
-                else:
+                # else:
                     # Optional: outline non-tile objects
-                    pygame.draw.rect(surface, (255, 0, 0), (obj.x, obj.y, obj.width, obj.height), 2)
-
+                    #  pygame.draw.rect(surface, (255, 0, 0), (obj.x, obj.y, obj.width, obj.height), 2)
+    draw_text_objects_to_surface(surface)
+    
 def draw_arrows_to_surface(surface, path, item_tiles):
     rendered = set()
 
@@ -112,8 +114,37 @@ def draw_arrows_to_surface(surface, path, item_tiles):
                 img = pygame.transform.scale(img, (tmx_data.tilewidth, tmx_data.tileheight))
                 surface.blit(img, (x, y))
 
+def draw_text_objects_to_surface(surface):
+    for label in text_labels:
+        font = pygame.font.SysFont(label["font"], label["size"], bold=label["bold"])
+
+        # Convert hex color
+        r = int(label["color"][1:3], 16)
+        g = int(label["color"][3:5], 16)
+        b = int(label["color"][5:7], 16)
+
+        rendered = font.render(label["text"], True, (r, g, b))
+
+        if label["rotation"]:
+            rendered = pygame.transform.rotate(rendered, -label["rotation"])
+
+        # print(f">> Rendering: {label['text']} at ({label['x']}, {label['y']})")
+        # Center text in the object's box if width/height is defined
+        pos_x = label["x"]
+        pos_y = label["y"]
+        
+        if "width" in label and "height" in label:
+            pos_x += (label["width"] - rendered.get_width()) / 2
+            pos_y += (label["height"] - rendered.get_height()) / 2
+        
+        surface.blit(rendered, (pos_x, pos_y))
+
+
+
+
 
 if __name__ == "__main__":
     pygame.init()
+    pygame.font.init()
     print(">>> Flask is starting...")
     app.run(debug=True)

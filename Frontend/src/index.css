@@ -98,7 +98,7 @@
     }
 
     #textEditor h3, h3 {
-        @apply font-inter text-3xl leading-loose max-md:text-2xl max-md:leading-normal !important;
+        @apply font-inter text-3xl max-md:text-2xl  !important;
     }
 
     #textEditor *, .blog-page-content *{

@@ -1,18 +1,50 @@
 import { use, useEffect, useRef, useState } from "react"
 import { CategoryNav } from "../components/category-navigation"
 import axios from 'axios';
-// import { ProductCard } from "../components/product-card";
-import { ProductCard } from "../components/ProductCard";
-import { suggestions } from "../mockData";
-import { addToCart } from "./Cart";
-export const HomePage = () => {
+import { ProductCard } from "../components/product-card";
+// import { ProductCard } from "../components/ProductCard";
+// import { suggestions } from "../mockData";
+// import { addToCart } from "./Cart";
+import { useContext } from "react";
+import { UserContext } from "../App";
+import { CartContext } from "../App";
 
     
 
-    let [products,setProducts] = useState(null);
 
+export const HomePage = () => {
+    
+    
+
+    let [products,setProducts] = useState(null);
+    let {userCart,setUserCart} = useContext(CartContext);
+    let {userAuth : {access_token}} = useContext(UserContext);
     const [visibleCount, setVisibleCount] = useState(12); 
     const observerRef = useRef(null);
+
+    const getCart = async () => {
+      try {
+        const res = await axios.get(import.meta.env.VITE_SERVER_DOMAIN + "/get-cart", {
+          headers: {
+            Authorization: `Bearer ${access_token}`
+          }
+        });
+
+        setUserCart(res.data.cart); // ✅ Correctly extract cart
+        
+      } catch (err) {
+        console.log("Failed to get cart:", err);
+      }
+    };
+
+
+    useEffect(()=>{
+            if(access_token){
+                getCart()
+                // console.log(userCart);
+            }
+            
+        },[]); 
 
      useEffect(() => {
       const observer = new IntersectionObserver(
@@ -55,10 +87,10 @@ export const HomePage = () => {
 
             <div className="center grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-4 w-fit">
               {
-                suggestions == null ? "" :
-                suggestions.length ? 
-                  suggestions.slice(0, visibleCount).map((product, i) => (
-                    <ProductCard key={i} product={product} onAddToCart={addToCart} />
+                products == null ? "" :
+                products.length ? 
+                  products.slice(0, visibleCount).map((product, i) => (
+                    <ProductCard key={i} content={product} />
                   )) :
                   <h1>No items</h1>
               }

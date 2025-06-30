@@ -49,7 +49,7 @@ opposite = {
 
 
 # Grid setup
-ROWS, COLS = 10, 10
+ROWS, COLS = 12, 14
 CELL_SIZE = 64
 WIDTH, HEIGHT = COLS * CELL_SIZE, ROWS * CELL_SIZE
 
@@ -66,19 +66,21 @@ dx = [-1, 1, 0, 0]
 dy = [0, 0, -1, 1]
 
 grid = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ]
 
-entrance = (9, 4)
+entrance = (11, 5)
 
 def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -132,7 +134,43 @@ def tsp_nearest_neighbor(N, distance_map):
 
     return order
 
+
+import xml.etree.ElementTree as ET
+
+def extract_text_labels_from_tmx(tmx_path):
+    tree = ET.parse(tmx_path)
+    root = tree.getroot()
+    labels = []
+
+    for objgroup in root.findall("objectgroup"):
+        for obj in objgroup.findall("object"):
+            text_elem = obj.find("text")
+            if text_elem is not None and text_elem.text:
+                x = float(obj.get("x", 0))
+                y = float(obj.get("y", 0))
+                rotation = float(obj.get("rotation", 0))
+                text = text_elem.text.strip()
+                color = text_elem.get("color", "#000000")
+                size = int(text_elem.get("pixelsize", 16))
+                font = text_elem.get("fontfamily", "Arial")
+                bold = text_elem.get("bold", "0") == "1"
+                labels.append({
+                    "x": x,
+                    "y": y,
+                    "text": text,
+                    "rotation": rotation,
+                    "color": color,
+                    "size": size,
+                    "font": font,
+                    "bold": bold
+                })
+
+    return labels
+
+
 tmx_data = load_pygame("data/map.tmx")  
+text_labels = extract_text_labels_from_tmx("data/map.tmx")
+
 
 def generate_path(raw_items):
     

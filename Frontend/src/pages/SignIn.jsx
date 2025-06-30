@@ -37,7 +37,7 @@ export const SignIn = () => {
         
 
         let {email,password} = formData;
-        console.log({email});
+        // console.log({email});
 
         if(!email?.length){
             return toast.error("Enter Email");

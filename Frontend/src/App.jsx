@@ -12,13 +12,16 @@ import { createContext } from 'react'
 import User from '../../Backend Mongo/Schema/User'
 
  export const UserContext = createContext({});
+ export const CartContext = createContext({});
 
 function App() {
 
   const [userAuth,setUserAuth] = useState({});
+  const [userCart,setUserCart] = useState([]);
 
   return (
     <UserContext.Provider value={{userAuth,setUserAuth}}>
+    <CartContext.Provider value={{userCart,setUserCart}}>  
     <Routes>
       <Route path="/" element={<Navbar/>}>
         <Route index element={<HomePage/>}/>
@@ -28,6 +31,7 @@ function App() {
         <Route path="/route" element={<RouteMap/>}/>
       </Route>
     </Routes>
+    </CartContext.Provider>
     </UserContext.Provider>
   )
 }

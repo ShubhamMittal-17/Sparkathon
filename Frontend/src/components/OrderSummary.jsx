@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 
 const OrderSummary = ({ items }) => {
 
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const tax = subtotal * 0.08; // 8% tax
   
   const total = subtotal + tax ;
   
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 h-fit sticky top-8">
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 h-fit sticky top-[100px]">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
       
       {/* Order Details */}

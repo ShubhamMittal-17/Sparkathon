@@ -2,7 +2,7 @@ import mongoose, {Schema} from "mongoose";
 
 const userSchema = mongoose.Schema({
 
-    personal_info: {
+ personal_info: {
         fullname: {
             type: String,
             lowercase: true,
@@ -15,8 +15,12 @@ const userSchema = mongoose.Schema({
             lowercase: true,
             unique:true
         },
-        password: String,
+        password: {
+            type : String , 
+            required : true
+        },
     },
+
     cart: {
         type: [
         {
@@ -28,12 +32,33 @@ const userSchema = mongoose.Schema({
             quantity:{
                 type:Number,
                 default:1,
-                min:1
+                min:0
             }
         }
     ],
     default:[]
-}
+    }, 
+    savedLists: {
+        type: [
+            {
+                list: [
+                    {
+                        product: {
+                            type: mongoose.Schema.Types.ObjectId,
+                            ref: 'products',
+                            required: true
+                        },
+                        quantity: {
+                            type: Number,
+                            default: 1,
+                            min: 0
+                        }
+                    }
+                ]
+            }
+        ],
+        default: [] 
+    }
 
 })
 
