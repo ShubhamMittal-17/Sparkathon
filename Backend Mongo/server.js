@@ -11,6 +11,7 @@ import {getAuth} from "firebase-admin/auth"
 
 import Product from './Schema/Product.js';
 import User from './Schema/User.js';
+import { getSimilar } from './recommend.js';
 
 const server = express();
 let PORT = 5000;
@@ -131,6 +132,36 @@ server.get('/all-products',(req,res)=>{
     .catch(err => {
         return res.status(500).json({"error":err.message});
     })
+})
+
+// Content-based "similar items" recommender.
+// GET /similar/:productId?limit=4  ->  top-N products similar to :productId,
+// each with a similarity score and an explainable per-signal breakdown.
+server.get("/similar/:productId", async (req,res) => {
+    try {
+        const { productId } = req.params;
+        const limit = Math.min(parseInt(req.query.limit) || 4, 20);
+
+        // Content-based scoring needs the catalog, not a user profile — so we
+        // rank over all products. (Lean() returns plain objects, not Mongoose docs.)
+        const allProducts = await Product.find().lean();
+
+        const results = getSimilar(productId, allProducts, limit);
+        if (!results.length) {
+            return res.status(404).json({ error: "Product not found or no similar items." });
+        }
+
+        return res.status(200).json({
+            similar: results.map(({ product, score, reasons }) => ({
+                ...product,
+                similarity: Number(score.toFixed(3)),
+                reasons,
+            })),
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Internal server error" });
+    }
 })
 
 const verifyJWT = (req,res,next) => {
