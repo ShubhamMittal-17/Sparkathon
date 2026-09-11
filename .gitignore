@@ -1,3 +1,29 @@
-# Ignore Firebase Admin SDK credentials
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment / secrets
+.env
+**/.env
+*.local
+
+# Firebase Admin SDK credentials
 Backend Mongo/sparkathon-2025-a7d10-firebase-adminsdk-fbsvc-3d46855f98.json
 Backend Mongo/sparkathon-2025-a7d10-firebase-adminsdk-fbsvc-e87dc30a46.json
+**/*firebase-adminsdk*.json
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db

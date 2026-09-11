@@ -2,6 +2,7 @@ import { use, useEffect, useRef, useState } from "react"
 import { CategoryNav } from "../components/category-navigation"
 import axios from 'axios';
 import { ProductCard } from "../components/product-card";
+import { SimilarItems } from "../components/SimilarItems";
 // import { ProductCard } from "../components/ProductCard";
 // import { suggestions } from "../mockData";
 // import { addToCart } from "./Cart";
@@ -107,8 +108,14 @@ export const HomePage = () => {
               }
 
             </div>
-          
-            
+
+            {
+              products?.length ?
+                <SimilarItems
+                  productId={products[0]._id ?? products[0].product_id}
+                  title={`Similar to ${products[0].title}`}
+                /> : ""
+            }
 
             <></>
             </CategoryNav>
