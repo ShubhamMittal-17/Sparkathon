@@ -134,23 +134,40 @@ server.get('/all-products',(req,res)=>{
     })
 })
 
-// Content-based "similar items" recommender.
-// GET /similar/:productId?limit=4  ->  top-N products similar to :productId,
-// each with a similarity score and an explainable per-signal breakdown.
+// Content-based "similar items" recommendations.
+// GET /similar/:productId?limit=4
+//
+// Primary ranking is served by the standalone Python recommender microservice
+// (TF-IDF + cosine similarity) so ranking logic evolves independently of this
+// Node layer. If that service is unreachable we degrade gracefully to a
+// lightweight in-process content scorer (see recommend.js) so the storefront
+// never loses recommendations.
+const RECOMMENDER_URL = process.env.RECOMMENDER_URL || "http://localhost:5002";
+
 server.get("/similar/:productId", async (req,res) => {
+    const { productId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit) || 4, 20);
+
+    // 1) Try the TF-IDF recommender service.
     try {
-        const { productId } = req.params;
-        const limit = Math.min(parseInt(req.query.limit) || 4, 20);
+        const upstream = await fetch(
+            `${RECOMMENDER_URL}/similar/${productId}?limit=${limit}`,
+            { signal: AbortSignal.timeout(3000) }
+        );
+        if (upstream.ok) {
+            return res.status(200).json(await upstream.json());
+        }
+    } catch (err) {
+        console.warn("Recommender service unavailable, falling back:", err.message);
+    }
 
-        // Content-based scoring needs the catalog, not a user profile — so we
-        // rank over all products. (Lean() returns plain objects, not Mongoose docs.)
+    // 2) Fallback: lightweight in-process scorer over the catalog.
+    try {
         const allProducts = await Product.find().lean();
-
         const results = getSimilar(productId, allProducts, limit);
         if (!results.length) {
             return res.status(404).json({ error: "Product not found or no similar items." });
         }
-
         return res.status(200).json({
             similar: results.map(({ product, score, reasons }) => ({
                 ...product,
