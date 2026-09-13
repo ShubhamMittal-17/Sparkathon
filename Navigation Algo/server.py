@@ -1,6 +1,7 @@
 from flask import Flask, request, send_file
 import pygame
 import io
+import os
 import base64
 import pytmx
 from navigation_algo_test import generate_path, tmx_data,text_labels, arrow_images
@@ -249,5 +250,6 @@ def render_route():
 if __name__ == "__main__":
     pygame.init()
     pygame.font.init()
-    print(">>> Flask is starting on port 5001...")
-    app.run(port=5001, debug=True)
+    port = int(os.environ.get("PORT", 5001))
+    print(f">>> Flask is starting on port {port} (all interfaces)...")
+    app.run(host="0.0.0.0", port=port)

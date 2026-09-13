@@ -1,0 +1,33 @@
+# Render Blueprint — two free Docker web services + MongoDB Atlas (external).
+# In Render: New → Blueprint → pick this repo. Then set the `sync: false` vars
+# in the dashboard (see DEPLOY.md).
+services:
+  # Navigation microservice (internal use; the web service proxies to it).
+  - type: web
+    name: sparkathon-nav
+    runtime: docker
+    dockerfilePath: ./deploy/Dockerfile.nav
+    dockerContext: .
+    plan: free
+    region: singapore
+
+  # Web gateway: serves the storefront + API, proxies the nav service.
+  - type: web
+    name: sparkathon-web
+    runtime: docker
+    dockerfilePath: ./deploy/Dockerfile.web
+    dockerContext: .
+    plan: free
+    region: singapore
+    healthCheckPath: /all-products
+    envVars:
+      - key: DB_LOCATION        # MongoDB Atlas connection string (+ /sparkathon)
+        sync: false
+      - key: SECRET_ACCESS_KEY  # JWT signing key
+        generateValue: true
+      - key: ADMIN_KEY          # must equal the editor PIN (1234 by default)
+        sync: false
+      - key: RECOMMENDER_URL    # empty = use built-in Jaccard recommender
+        value: ""
+      - key: NAV_URL            # set to the sparkathon-nav service URL after it deploys
+        sync: false

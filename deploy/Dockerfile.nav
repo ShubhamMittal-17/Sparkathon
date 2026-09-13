@@ -1,0 +1,19 @@
+# Navigation microservice (A* + TSP + PNG rendering with pygame).
+# Build context = repo root:  docker build -f deploy/Dockerfile.nav .
+FROM python:3.12-slim
+
+# pygame wheels bundle SDL2, but font/image rendering is happier with these.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libfreetype6 libjpeg62-turbo \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY ["Navigation Algo/", "./"]
+
+RUN pip install --no-cache-dir flask flask-cors pytmx pygame pillow
+
+# Headless rendering (no display in a container).
+ENV SDL_VIDEODRIVER=dummy
+
+# server.py reads PORT from the environment (the host injects it).
+CMD ["python", "server.py"]

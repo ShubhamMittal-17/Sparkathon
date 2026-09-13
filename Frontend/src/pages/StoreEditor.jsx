@@ -180,14 +180,11 @@ export const StoreEditor = () => {
   const saveLayout = async () => {
     if (!products.length) return toast.error("Place at least one product");
     try {
-      const { data } = await axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/save-layout", {
-        name,
-        width,
-        height,
-        entrance,
-        grid,
-        products,
-      });
+      const { data } = await axios.post(
+        import.meta.env.VITE_SERVER_DOMAIN + "/save-layout",
+        { name, width, height, entrance, grid, products },
+        { headers: { "x-admin-key": import.meta.env.VITE_MANAGER_PIN || "" } }
+      );
       toast.success(`Saved layout + ${data.productCount} products`);
     } catch (err) {
       toast.error(err.response?.data?.error || "Save failed");

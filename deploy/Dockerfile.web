@@ -1,0 +1,26 @@
+# Web gateway: builds the React frontend and serves it from the Node API,
+# which also proxies the nav service. One image = the whole storefront.
+# Build context = repo root:  docker build -f deploy/Dockerfile.web .
+FROM node:20-bookworm-slim
+
+# build tools for native deps (bcrypt) via node-gyp fallback
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 1) Build the frontend (same-origin API base; PIN baked in for the editor gate).
+COPY Frontend/package.json Frontend/package-lock.json ./Frontend/
+RUN cd Frontend && npm ci
+COPY Frontend/ ./Frontend/
+RUN printf 'VITE_SERVER_DOMAIN=\nVITE_MANAGER_PIN=1234\n' > Frontend/.env \
+    && cd Frontend && npm run build
+
+# 2) Install + copy the Node gateway (it serves ../Frontend/dist).
+COPY ["Backend Mongo/package.json", "Backend Mongo/package-lock.json", "./Backend Mongo/"]
+RUN cd "Backend Mongo" && npm ci --omit=dev
+COPY ["Backend Mongo/", "./Backend Mongo/"]
+
+WORKDIR "/app/Backend Mongo"
+# server.js reads PORT from the environment (the host injects it).
+CMD ["node", "server.js"]

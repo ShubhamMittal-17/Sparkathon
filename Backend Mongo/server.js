@@ -5,6 +5,8 @@ import cors from 'cors';
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 import Product from './Schema/Product.js';
 import User from './Schema/User.js';
@@ -12,10 +14,20 @@ import { getSimilar } from './recommend.js';
 import Layout from './Schema/Layout.js';
 
 const server = express();
-let PORT = 5000;
+let PORT = process.env.PORT || 5000; // cloud hosts inject PORT
 
 server.use(express.json());
 server.use(cors());
+
+// Single-gateway mode: serve the built frontend so the whole app lives behind
+// one origin (one URL / one tunnel — no CORS, no mixed content).
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distPath = path.join(__dirname, "..", "Frontend", "dist");
+const hasFrontend = fs.existsSync(distPath);
+if (hasFrontend) server.use(express.static(distPath));
+
+// The navigation microservice stays internal; the gateway proxies to it.
+const NAV_URL = process.env.NAV_URL || "http://localhost:5001";
 
 // Firebase admin is optional: only initialize it if the service-account key
 // file is present. Auth works via JWT + bcrypt regardless, so the server boots
@@ -145,6 +157,12 @@ server.get('/all-products',(req,res)=>{
 // DB so each placed product sits at its shelf cell. Replaces the catalog so the
 // database reflects exactly what's in the layout.
 server.post("/save-layout", async (req,res) => {
+    // Lock down this destructive endpoint in production: if ADMIN_KEY is set,
+    // the caller must send a matching x-admin-key header (the store editor sends
+    // the manager passcode). Without ADMIN_KEY set (local dev) it's open.
+    if (process.env.ADMIN_KEY && req.headers["x-admin-key"] !== process.env.ADMIN_KEY) {
+        return res.status(403).json({ error: "Not authorized." });
+    }
     try {
         const { name, width, height, entrance, grid, products } = req.body;
         if (!grid || !width || !height) {
@@ -200,23 +218,28 @@ server.get("/layout", async (req,res) => {
 // Node layer. If that service is unreachable we degrade gracefully to a
 // lightweight in-process content scorer (see recommend.js) so the storefront
 // never loses recommendations.
-const RECOMMENDER_URL = process.env.RECOMMENDER_URL || "http://localhost:5002";
+// Defaults to the local TF-IDF service in dev; set RECOMMENDER_URL="" in
+// production to skip it and use the in-process Jaccard scorer (no separate
+// service to host). `??` keeps an explicit empty string as "disabled".
+const RECOMMENDER_URL = process.env.RECOMMENDER_URL ?? "http://localhost:5002";
 
 server.get("/similar/:productId", async (req,res) => {
     const { productId } = req.params;
     const limit = Math.min(parseInt(req.query.limit) || 4, 20);
 
-    // 1) Try the TF-IDF recommender service.
-    try {
-        const upstream = await fetch(
-            `${RECOMMENDER_URL}/similar/${productId}?limit=${limit}`,
-            { signal: AbortSignal.timeout(3000) }
-        );
-        if (upstream.ok) {
-            return res.status(200).json(await upstream.json());
+    // 1) Try the TF-IDF recommender service, if one is configured.
+    if (RECOMMENDER_URL) {
+        try {
+            const upstream = await fetch(
+                `${RECOMMENDER_URL}/similar/${productId}?limit=${limit}`,
+                { signal: AbortSignal.timeout(3000) }
+            );
+            if (upstream.ok) {
+                return res.status(200).json(await upstream.json());
+            }
+        } catch (err) {
+            console.warn("Recommender service unavailable, falling back:", err.message);
         }
-    } catch (err) {
-        console.warn("Recommender service unavailable, falling back:", err.message);
     }
 
     // 2) Fallback: lightweight in-process scorer over the catalog.
@@ -339,6 +362,31 @@ server.get("/get-cart",verifyJWT,async (req,res) => {
 })
 
 
+
+// Proxy the route render to the internal nav service (keeps it one origin).
+server.post("/api/route", async (req, res) => {
+    try {
+        const r = await fetch(NAV_URL + "/api/route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(req.body),
+            signal: AbortSignal.timeout(15000),
+        });
+        const data = await r.json();
+        return res.status(r.status).json(data);
+    } catch (err) {
+        console.warn("Nav service proxy failed:", err.message);
+        return res.status(502).json({ error: "Navigation service unavailable" });
+    }
+})
+
+// SPA fallback: any non-API GET returns index.html so client-side routes work.
+if (hasFrontend) {
+    server.use((req, res, next) => {
+        if (req.method !== "GET") return next();
+        res.sendFile(path.join(distPath, "index.html"));
+    });
+}
 
 server.listen(PORT , () => {
     console.log("Listening on 5000...")

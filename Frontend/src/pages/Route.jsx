@@ -6,8 +6,8 @@ import { useCartActions } from "../common/useCartActions";
 import { Plus, Check, ListChecks, MapPin } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
-const NAV_SERVICE = (import.meta.env.VITE_NAV_DOMAIN || "http://127.0.0.1:5001") + "/api/route";
-const API = import.meta.env.VITE_SERVER_DOMAIN;
+const NAV_SERVICE = "/api/route"; // proxied by the Node gateway to the nav service
+const API = import.meta.env.VITE_SERVER_DOMAIN || "";
 const CATEGORIES = ["Electronics", "Food", "Snacks", "Hygiene", "Misc"];
 
 export const RouteMap = () => {
