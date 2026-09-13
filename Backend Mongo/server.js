@@ -4,14 +4,12 @@ import 'dotenv/config'
 import cors from 'cors';
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import admin from 'firebase-admin'
-import serviceAccountKey from './sparkathon-2025-a7d10-firebase-adminsdk-fbsvc-e87dc30a46.json' assert {type:"json"};
-
-import {getAuth} from "firebase-admin/auth"
+import fs from 'fs'
 
 import Product from './Schema/Product.js';
 import User from './Schema/User.js';
 import { getSimilar } from './recommend.js';
+import Layout from './Schema/Layout.js';
 
 const server = express();
 let PORT = 5000;
@@ -19,9 +17,18 @@ let PORT = 5000;
 server.use(express.json());
 server.use(cors());
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccountKey)
-})
+// Firebase admin is optional: only initialize it if the service-account key
+// file is present. Auth works via JWT + bcrypt regardless, so the server boots
+// fine without it.
+const firebaseKeyPath = "./sparkathon-2025-a7d10-firebase-adminsdk-fbsvc-e87dc30a46.json";
+if (fs.existsSync(firebaseKeyPath)) {
+    const admin = (await import("firebase-admin")).default;
+    const serviceAccountKey = JSON.parse(fs.readFileSync(firebaseKeyPath, "utf-8"));
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccountKey) });
+    console.log("Firebase admin initialized.");
+} else {
+    console.log("Firebase key not found — skipping Firebase init (JWT auth still works).");
+}
 
 mongoose.connect(process.env.DB_LOCATION, {
     autoIndex: true
@@ -132,6 +139,57 @@ server.get('/all-products',(req,res)=>{
     .catch(err => {
         return res.status(500).json({"error":err.message});
     })
+})
+
+// Save a store layout authored in the in-browser editor, and fill the products
+// DB so each placed product sits at its shelf cell. Replaces the catalog so the
+// database reflects exactly what's in the layout.
+server.post("/save-layout", async (req,res) => {
+    try {
+        const { name, width, height, entrance, grid, products } = req.body;
+        if (!grid || !width || !height) {
+            return res.status(400).json({ error: "Missing layout grid or dimensions." });
+        }
+
+        // Only one layout is active at a time.
+        await Layout.updateMany({}, { isActive: false });
+        const layout = await Layout.create({ name, width, height, entrance, grid, isActive: true });
+
+        let productCount = 0;
+        if (Array.isArray(products)) {
+            await Product.deleteMany();
+            const suffix = layout._id.toString().slice(-4);
+            const docs = products.map((p, i) => ({
+                product_id: p.product_id || `L${suffix}-${i + 1}`,
+                title: p.title || `Item ${i + 1}`,
+                product_img: p.product_img || "",
+                des: p.des || "",
+                price: p.price ?? 0,
+                tags: p.tags || "",
+                count: { total_stock: p.total_stock ?? 100, total_sold: p.total_sold ?? 0 },
+                position: { x: p.position.x, y: p.position.y },
+                rating: p.rating || "0",
+            }));
+            if (docs.length) await Product.insertMany(docs);
+            productCount = docs.length;
+        }
+
+        return res.status(201).json({ layout, productCount });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: err.message });
+    }
+})
+
+// Return the currently active store layout (for the editor and the route page).
+server.get("/layout", async (req,res) => {
+    try {
+        const layout = await Layout.findOne({ isActive: true }).sort({ createdAt: -1 });
+        if (!layout) return res.status(404).json({ error: "No layout found." });
+        return res.status(200).json({ layout });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
 })
 
 // Content-based "similar items" recommendations.

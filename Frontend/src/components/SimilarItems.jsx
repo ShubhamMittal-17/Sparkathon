@@ -18,9 +18,9 @@ export const SimilarItems = ({ productId, title = "Similar items" }) => {
   if (!items.length) return null;
 
   return (
-    <div className="py-8">
-      <h2 className="text-2xl font-bold text-center mb-6">{title}</h2>
-      <div className="flex flex-wrap justify-center gap-2">
+    <div className="py-10">
+      <h2 className="text-xl font-semibold tracking-tight mb-5">{title}</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {items.map((product) => (
           <ProductCard key={product._id ?? product.product_id} content={product} />
         ))}

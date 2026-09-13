@@ -11,7 +11,7 @@ const OrderSummary = ({ items }) => {
   
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 h-fit sticky top-[100px]">
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 h-fit sticky top-[88px]">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
       
       {/* Order Details */}
@@ -39,7 +39,7 @@ const OrderSummary = ({ items }) => {
       {/* Checkout Button */}
       <Link to="/route">
       <button
-        className="w-full bg-blue-600 text-white py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+        className="w-full bg-[#2874F0] hover:bg-[#1c5fd0] text-white py-3.5 rounded-full font-semibold text-base transition-colors"
       >
         Generate Route
       </button>

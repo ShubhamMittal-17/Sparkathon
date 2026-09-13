@@ -87,9 +87,10 @@ def heuristic(a, b):
 
 
 def astar(grid, start, goal):
+    rows, cols = len(grid), len(grid[0])
     pq = [(heuristic(start, goal), 0, start)]
-    g_score = [[float('inf')] * COLS for _ in range(ROWS)]
-    came_from = [[None] * COLS for _ in range(ROWS)]
+    g_score = [[float('inf')] * cols for _ in range(rows)]
+    came_from = [[None] * cols for _ in range(rows)]
     g_score[start[0]][start[1]] = 0
 
     while pq:
@@ -104,7 +105,7 @@ def astar(grid, start, goal):
 
         for d in range(4):
             nx, ny = x + dx[d], y + dy[d]
-            if 0 <= nx < ROWS and 0 <= ny < COLS and grid[nx][ny] == 0:
+            if 0 <= nx < rows and 0 <= ny < cols and grid[nx][ny] == 0:
                 new_g = g + 1
                 if new_g < g_score[nx][ny]:
                     g_score[nx][ny] = new_g
@@ -172,22 +173,27 @@ tmx_data = load_pygame("data/map.tmx")
 text_labels = extract_text_labels_from_tmx("data/map.tmx")
 
 
-def generate_path(raw_items):
-    
+def generate_path(raw_items, custom_grid=None, custom_entrance=None):
+    # Falls back to the built-in demo map when no custom layout is supplied, so
+    # the original /api/path_image endpoint keeps working unchanged.
+    g = custom_grid if custom_grid is not None else grid
+    start = tuple(custom_entrance) if custom_entrance is not None else entrance
+    rows = len(g)
+
     items = []
     for x, y in raw_items:
-        pickup = (x + 1, y)
-        if 0 <= pickup[0] < ROWS and grid[pickup[0]][pickup[1]] == 0:
+        pickup = (x + 1, y)  # stand in the aisle in front of the shelf
+        if 0 <= pickup[0] < rows and g[pickup[0]][pickup[1]] == 0:
             items.append(pickup)
 
-    points = [entrance] + items
+    points = [start] + items
 
     distance_map = {}
     path_map = {}
 
     for i in range(len(points)):
         for j in range(i + 1, len(points)):
-            path = astar(grid, points[i], points[j])
+            path = astar(g, points[i], points[j])
             dist = len(path)
             key1 = f"{i}_{j}"
             key2 = f"{j}_{i}"

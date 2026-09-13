@@ -1,6 +1,7 @@
 from flask import Flask, request, send_file
 import pygame
 import io
+import base64
 import pytmx
 from navigation_algo_test import generate_path, tmx_data,text_labels, arrow_images
 from flask_cors import CORS
@@ -143,8 +144,110 @@ def draw_text_objects_to_surface(surface):
 
 
 
+# ---------------------------------------------------------------------------
+# Custom-layout route rendering (driven by the in-browser Store Editor).
+# Accepts an arbitrary grid + entrance + item cells and renders a generic map
+# (aisles/shelves as flat tiles) with the A*+TSP route drawn on top -- no Tiled
+# art required, so any layout the user designs can be rendered.
+# ---------------------------------------------------------------------------
+TILE = 48
+
+def draw_arrows_generic(surface, path, item_tiles, tile):
+    rendered = set()
+
+    def get_direction(a, b):
+        dx_, dy_ = b[0] - a[0], b[1] - a[1]
+        if dx_ == -1: return 'up'
+        if dx_ == 1: return 'down'
+        if dy_ == -1: return 'left'
+        if dy_ == 1: return 'right'
+        return None
+
+    opp = {"up": "down", "down": "up", "left": "right", "right": "left"}
+
+    for i in range(1, len(path) - 1):
+        prev, curr, nxt = path[i - 1], path[i], path[i + 1]
+        if curr in rendered:
+            continue
+        d1, d2 = get_direction(prev, curr), get_direction(curr, nxt)
+        x, y = curr[1] * tile, curr[0] * tile
+        if curr in item_tiles:
+            img = arrow_images.get("item")
+        elif d1 == d2:
+            img = arrow_images["vertical"] if d1 in ("up", "down") else arrow_images["horizontal"]
+        elif d1 == opp.get(d2):
+            img = arrow_images.get(f"uturn_{d2}")
+        else:
+            img = arrow_images.get(f"curve_{d1}_{d2}")
+        if img:
+            img = pygame.transform.scale(img, (tile, tile))
+            surface.blit(img, (x, y))
+            rendered.add(curr)
+
+    if path:
+        last = path[-1]
+        img = arrow_images.get("item")
+        if img and last not in rendered:
+            img = pygame.transform.scale(img, (tile, tile))
+            surface.blit(img, (last[1] * tile, last[0] * tile))
+
+
+def render_grid_route(grid_data, entrance, path, item_tiles, rec_cells=None):
+    rows, cols = len(grid_data), len(grid_data[0])
+    surface = pygame.Surface((cols * TILE, rows * TILE))
+    surface.fill((230, 230, 230))
+    for r in range(rows):
+        for c in range(cols):
+            rect = (c * TILE, r * TILE, TILE - 1, TILE - 1)
+            color = (150, 110, 70) if grid_data[r][c] == 1 else (245, 245, 245)
+            pygame.draw.rect(surface, color, rect)
+    ex, ey = entrance
+    pygame.draw.rect(surface, (40, 180, 80), (ey * TILE, ex * TILE, TILE - 1, TILE - 1))
+    draw_arrows_generic(surface, path, item_tiles, TILE)
+
+    # Recommended-on-route items: yellow pins at their shelf cells.
+    for (rx, ry) in (rec_cells or []):
+        cx, cy = ry * TILE + TILE // 2, rx * TILE + TILE // 2
+        pygame.draw.circle(surface, (255, 205, 0), (cx, cy), TILE // 4)
+        pygame.draw.circle(surface, (170, 120, 0), (cx, cy), TILE // 4, 2)
+
+    raw_str = pygame.image.tostring(surface, 'RGB')
+    image = Image.frombytes('RGB', surface.get_size(), raw_str)
+    buf = io.BytesIO()
+    image.save(buf, format='PNG')
+    buf.seek(0)
+    return buf
+
+
+@app.route("/api/route", methods=["POST"])
+def render_route():
+    data = request.json
+    grid_data = data.get("grid")
+    entrance = tuple(data.get("entrance", [len(grid_data) - 1, 0]))
+    items = data.get("items", [])
+    recommended = data.get("recommended", [])   # candidate shelf cells [[x,y], ...]
+    threshold = data.get("threshold", 1)         # how close counts as "on the way"
+
+    path, item_tiles = generate_path(items, custom_grid=grid_data, custom_entrance=entrance)
+
+    # Keep only recommended items whose pickup cell is within `threshold` of the
+    # shortest route -- i.e. items the shopper passes anyway (minimal detour).
+    on_route = []
+    for idx, (rx, ry) in enumerate(recommended):
+        pickup = (rx + 1, ry)
+        dmin = min((abs(pickup[0] - px) + abs(pickup[1] - py) for (px, py) in path), default=9999)
+        if dmin <= threshold:
+            on_route.append(idx)
+
+    rec_on_route_cells = [tuple(recommended[i]) for i in on_route]
+    image_bytes = render_grid_route(grid_data, entrance, path, item_tiles, rec_on_route_cells)
+    b64 = base64.b64encode(image_bytes.getvalue()).decode()
+    print(f">> Route: {len(items)} items, path {len(path)}, {len(on_route)}/{len(recommended)} recs on-route")
+    return {"image": "data:image/png;base64," + b64, "on_route_indices": on_route}
+
+
 if __name__ == "__main__":
     pygame.init()
     pygame.font.init()
-    print(">>> Flask is starting...")
-    app.run(debug=True)
+    print(">>> Flask is starting on port 5001...")
+    app.run(port=5001, debug=True)
