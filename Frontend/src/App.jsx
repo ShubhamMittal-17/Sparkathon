@@ -1,38 +1,36 @@
-import { useContext, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { Navbar } from './components/navbar-component'
 import { HomePage } from './pages/homepage'
-import { SignUp } from './pages/SignUp'
-import { SignIn } from './pages/SignIn'
-import {Cart} from './pages/Cart'
+import { Cart } from './pages/Cart'
 import { RouteMap } from './pages/Route'
+import { StoreEditor } from './pages/StoreEditor'
+import { ManagerGate } from './components/ManagerGate'
 import { createContext } from 'react'
-import User from '../../Backend Mongo/Schema/User'
 
- export const UserContext = createContext({});
- export const CartContext = createContext({});
+// No accounts: the app is opened by scanning a QR at the store entrance, so the
+// cart is a per-session, per-device list kept in the browser (localStorage).
+export const CartContext = createContext({});
+
+const loadCart = () => {
+  try { return JSON.parse(localStorage.getItem('cart')) || []; }
+  catch { return []; }
+};
 
 function App() {
-
-  const [userAuth,setUserAuth] = useState({});
-  const [userCart,setUserCart] = useState([]);
+  const [userCart, setUserCart] = useState(loadCart);
 
   return (
-    <UserContext.Provider value={{userAuth,setUserAuth}}>
-    <CartContext.Provider value={{userCart,setUserCart}}>  
-    <Routes>
-      <Route path="/" element={<Navbar/>}>
-        <Route index element={<HomePage/>}/>
-        <Route path="/signin" element={<SignIn/>}/>
-        <Route path="/signup" element={<SignUp/>}/>
-        <Route path="/cart" element={<Cart/>}/>
-        <Route path="/route" element={<RouteMap/>}/>
-      </Route>
-    </Routes>
+    <CartContext.Provider value={{ userCart, setUserCart }}>
+      <Routes>
+        <Route path="/" element={<Navbar />}>
+          <Route index element={<HomePage />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/route" element={<RouteMap />} />
+          <Route path="/editor" element={<ManagerGate><StoreEditor /></ManagerGate>} />
+        </Route>
+      </Routes>
     </CartContext.Provider>
-    </UserContext.Provider>
   )
 }
 

@@ -1,115 +1,73 @@
-import { Link, Outlet } from "react-router-dom"
+import { Link, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import wallmart_logo from "../imgs/logo.png"
-import search_logo from "../imgs/search.png"
-import list_logo from "../imgs/list.png"
-import cart_logo from "../imgs/cart.png"
-import user_logo from "../imgs/user.png"
-import location_logo from "../imgs/location.png"
-import drop_logo from "../imgs/drop.png"
-import climb_logo from "../imgs/climb.png"
-import { useContext, useState,useEffect, useRef } from "react"
-import { UserContext } from "../App"
-import { UserNavigationPanel } from "./user_navigation_panel"
-
+import { useContext, useState } from "react"
+import { Map, ShoppingCart, Search } from "lucide-react"
+import { CartContext } from "../App"
 
 export const Navbar = () => {
+    const { userCart } = useContext(CartContext);
+    const count = (userCart || []).reduce((n, it) => n + it.quantity, 0);
+    const { pathname } = useLocation();
+    const navigate = useNavigate();
+    const [params] = useSearchParams();
+    const [q, setQ] = useState(params.get("q") || "");
 
-    let [locImg,setLocImg] = useState(drop_logo);
-    let {userAuth : {access_token}} = useContext(UserContext);
-    // console.log(access_token);
-    const [UserNavigationPanelVisibility, setUserNavigationPanelVisibility] = useState(false);
-
-    const handleLocationSelect = () => {
-        if(locImg == drop_logo) setLocImg(climb_logo);
-        else setLocImg(drop_logo);
-    }
-
-    const panelRef = useRef();
-
-    useEffect(() => {
-      const handleClickOutside = (e) => {
-        if (panelRef.current && !panelRef.current.contains(e.target)) {
-          setUserNavigationPanelVisibility(false);
-        }
-      };
-
-      document.addEventListener("click", handleClickOutside);
-      return () => document.removeEventListener("click", handleClickOutside);
-    }, []);
+    const runSearch = (value) => {
+        setQ(value);
+        navigate(value.trim() ? `/?q=${encodeURIComponent(value.trim())}` : "/", { replace: true });
+    };
 
     return (
-        <>
-        <nav className="navbar bg-[#0053E2] gap-3 px-4 justify-center border-none">
-            <Link to="/">
-                <img className="min-w-[30px] min-h-[30px] w-[30px] h-[30px] rounded-full object-contain" src={wallmart_logo} />
-            </Link>
-            <div className=" relative min-w-fit text-white rounded-full bg-[#003899] py-2 px-5 pl-4 flex items-center gap-3 cursor-pointer max-lg:hidden"
-            onClick={handleLocationSelect}>
-                <img src={location_logo} className="w-[25px] h-[25px] rounded-full"/>
-                <div className="flex flex-col">
-                    <h1 className="text-nowrap font-bold text-[14px]">Select Store</h1>
-                    <h1 className="text-nowrap text-sm">Temp address</h1>
-                </div>
-                <img src={locImg} className="w-[12px] h-[12px]" />
-                <div className={`absolute w-[200px] h-[120px] bg-[#0053E2] bottom-[-130px] left-[-17px] 
-                rounded-md flex flex-col items-center justify-center gap-2 ` + (locImg == climb_logo ? "":"hidden")}>
-                    <h1 className="block p-3 bg-[#003899] px-[70px] rounded-full font-bold">A</h1>
-                    <h1 className="block p-3 bg-[#003899] px-[70px] rounded-full font-bold">B</h1>
-                    {/* <h1>C</h1> */}
-                </div>
+        <div className="min-h-screen flex flex-col bg-[#f1f3f6] text-gray-900">
+            <nav className="sticky top-0 z-40 bg-[#2874F0] shadow-sm">
+                <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center gap-3 sm:gap-5">
+                    <Link to="/" className="flex items-center gap-2 shrink-0">
+                        <img className="w-7 h-7 rounded-full object-contain bg-white p-0.5" src={wallmart_logo} />
+                        <div className="leading-none hidden sm:block">
+                            <span className="text-white font-bold italic text-lg">Walmart</span>
+                            <span className="block text-[11px] text-blue-100 italic -mt-0.5">In-store</span>
+                        </div>
+                    </Link>
 
-            
+                    <form onSubmit={(e) => { e.preventDefault(); runSearch(q); }} className="relative flex-1 min-w-0 max-w-2xl">
+                        <input
+                            type="text"
+                            value={q}
+                            onChange={(e) => runSearch(e.target.value)}
+                            placeholder="Search for products, brands and more"
+                            className="w-full bg-white rounded-sm pl-3 pr-10 py-2 text-sm outline-none placeholder:text-gray-400"
+                        />
+                        <button type="submit" className="absolute right-0 top-0 h-full px-3 flex items-center" aria-label="Search">
+                            <Search size={18} className="text-[#2874F0]" />
+                        </button>
+                    </form>
 
-            </div>
+                    <Link to="/route">
+                        <button className={`flex items-center gap-1.5 rounded px-3 py-2 text-sm font-semibold transition ${pathname === "/route" ? "bg-white/20 text-white" : "text-white hover:bg-white/10"}`}>
+                            <Map size={18} />
+                            <span className="hidden md:block">Route</span>
+                        </button>
+                    </Link>
 
-            <div className="relative w-full max-w-[900px]">
-                <input 
-                type="text"
-                placeholder="Search Wallmart"
-                className="w-full rounded-[100px] p-4 px-5 pr-[50px]"
-                />
-                <img src={search_logo} className=" w-[30px] h-[30px] absolute right-[10px] bottom-[10px] rounded-full bg-[#0053E2] p-[5px] hover:cursor-pointer object-contain"/>
-            </div>
-            <Link className="p-0 m-0 max-md:hidden" to="/mylists">
-            <button className="flex justify-center items-center gap-2 p-4 px-7 rounded-full hover:bg-[#003899] md:px-5 lg:px-3 max-md:hidden">
-                <img src={list_logo} className="w-[25px] h-[25px] object-contain" />
-                <h1 className="text-white text-nowrap font-bold">My Lists</h1>
-            </button>
-            </Link>
-            {
-                access_token?
-                <div className="relative" ref={panelRef}>
-                    <button className={`flex justify-center items-center gap-2 p-4 px-7 rounded-full hover:bg-[#003899] md:px-5 lg:px-3 max-md:py-2 max-md:px-3 `}
-                    onClick={() => setUserNavigationPanelVisibility(currentVal => !currentVal)}>
-                    <img src={user_logo} className="min-w-[25px] min-h-[25px] w-[25px] h-[25px] object-contain" />
-                    <h1 className="text-white text-nowrap font-bold max-md:hidden">Account</h1>
-                    </button>
-                    <UserNavigationPanel className={`z-50 transition-all duration-300 ${UserNavigationPanelVisibility ? 'opacity-100 visible' : 'opacity-0 invisible' }`} />
+                    <Link to="/cart" className="relative">
+                        <button className="flex items-center gap-1.5 rounded px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 transition">
+                            <ShoppingCart size={18} />
+                            <span className="hidden md:block">List</span>
+                        </button>
+                        {count > 0 && (
+                            <span className="absolute top-0 right-1 bg-[#ff9f00] text-white text-[11px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-2 border-[#2874F0]">{count}</span>
+                        )}
+                    </Link>
                 </div>
-                 :
-                <Link className="p-0 m-0" to="/signin">
-                <button className={`flex justify-center items-center gap-2 p-4 px-7 rounded-full hover:bg-[#003899] md:px-5 lg:px-3 max-md:py-2 max-md:px-3 `}>
-                <img src={user_logo} className="min-w-[25px] min-h-[25px] w-[25px] h-[25px] object-contain" />
-                <h1 className="text-white text-nowrap font-bold max-md:hidden">Sign In</h1>
-                </button>
-                </Link>
-            }
-            
-            <Link className="p-0 m-0" to="/cart">
-            <button className="flex justify-center items-center gap-2 p-4 px-6 rounded-full hover:bg-[#003899] md:px-4 max-md:py-2 max-md:px-3">
-                <img src={cart_logo} className="min-w-[25px] min-h-[25px] w-[25px] h-[25px] object-contain" />
-                <h1 className="text-white text-nowrap font-bold max-md:hidden">Cart</h1>
-            </button>
-            </Link>
-        </nav>
-        {/* Footer */}
-      
-        <Outlet/>
-        <footer className="bg-gray-900 text-white py-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-gray-400">© 2025 Walmart. All rights reserved.</p>
-            </div>
-        </footer>
-        </>
+            </nav>
+
+            <main className="flex-1">
+                <Outlet />
+            </main>
+
+            <footer className="bg-[#172337] text-gray-400 py-6 text-center text-sm mt-8">
+                © 2025 Walmart · in-store shopping assistant
+            </footer>
+        </div>
     )
 }

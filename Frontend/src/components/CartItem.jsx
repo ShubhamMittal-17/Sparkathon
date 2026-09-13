@@ -16,7 +16,7 @@ const CartItem = ({item,quantity}) => {
   let {title,product_img,price,tags,_id} = item;
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+    <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-gray-200 transition-colors">
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative">
           <img
@@ -53,7 +53,7 @@ const CartItem = ({item,quantity}) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => handleRemoveItem(_id)}
+                onClick={() => handleRemoveItem(item)}
                 // disabled={!item.inStock}
                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-blue-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -63,7 +63,7 @@ const CartItem = ({item,quantity}) => {
                 {quantity}
               </span>
               <button
-                onClick={() => handleAddItem(_id)}
+                onClick={() => handleAddItem(item)}
                 // disabled={!item.inStock}
                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-blue-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

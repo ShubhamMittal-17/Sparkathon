@@ -1,128 +1,64 @@
-import axios from "axios";
-import plus_icon from "../imgs/plus.png"
-import { useContext, useEffect } from "react";
-import { CartContext, UserContext } from "../App";
-import toast, { Toaster } from "react-hot-toast";
-import { Minus, Plus, Trash2, Heart } from 'lucide-react';
-import { Navigate, useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { CartContext } from "../App";
+import { Toaster } from "react-hot-toast";
+import { Minus, Plus, Star } from 'lucide-react';
 import { useCartActions } from "../common/useCartActions";
-// import { getCart } from "../pages/homepage";
 
-export const ProductCard = ({content}) => {
-    const {handleAddItem,handleRemoveItem} = useCartActions();
-    let navigate = useNavigate();
-
-    let {userAuth : {access_token}} = useContext(UserContext);
-    let {title,product_img,price} = content;
-    let {userCart,setUserCart} = useContext(CartContext);
-
-    // const getCart = async () => {
-    //   try {
-    //     const res = await axios.get(import.meta.env.VITE_SERVER_DOMAIN + "/get-cart", {
-    //       headers: {
-    //         Authorization: `Bearer ${access_token}`
-    //       }
-    //     });
-
-    //     setUserCart(res.data.cart); // ✅ Correctly extract cart
-    //     // console.log(userCart);
-        
-    //   } catch (err) {
-    //     console.log("Failed to get cart:", err);
-    //   }
-    // };
-
-    // let handleAddItem = async () => {
-    //     if (access_token){
-    //         const payload = {
-    //         product: {_id:content._id},
-    //         quantity: 1
-    //     }
-
-    //     await axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/add-item", payload ,{
-    //         headers: {
-    //             'Authorization': `Bearer ${access_token}`
-    //         }
-    //     })
-    //     .then(() => {
-    //         getCart();
-    //         })
-    //     .catch(err => {
-    //         return toast.error("Failed");
-    //     })
-    //     }
-    //     else{
-    //         navigate("/signin")
-    //     }
-        
-        
-    // }
-
-    // let handleRemoveItem = async () => {
-    //     if (access_token){
-    //         const payload = {
-    //         product: {_id:content._id},
-    //         quantity: 1
-    //     }
-
-    //     await axios.post(import.meta.env.VITE_SERVER_DOMAIN + "/remove-item", payload ,{
-    //         headers: {
-    //             'Authorization': `Bearer ${access_token}`
-    //         }
-    //     })
-    //     .then(() => {
-    //         getCart();
-    //         })
-    //     .catch(err => {
-    //         return toast.error("Failed");
-    //     })
-    //     }
-    //     else{
-    //         navigate("/signin")
-    //     }
-        
-        
-    // }
+export const ProductCard = ({ content }) => {
+    const { handleAddItem, handleRemoveItem } = useCartActions();
+    const { title, product_img, price, rating } = content;
+    const { userCart } = useContext(CartContext);
 
     const inCart = userCart?.find(item => item.product._id === content._id);
-    
+    const mrp = price * 1.25;
+    const off = Math.round(((mrp - price) / mrp) * 100);
+    const rate = (parseFloat(rating) || 4.2).toFixed(1);
+    const reviews = content.count?.total_sold ?? 120;
 
     return (
-        <div className="min-w-[152px] flex flex-col w-[250px] h-[370px] p-3 py-4 border-[1px] border-grey justify-center items-center align-middle gap-2 m-2 rounded-md
-        hover:scale-105 lg:w-[250px] lg:h-[370px]">
+        <div className="group flex flex-col min-w-0 bg-white rounded-lg border border-gray-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-shadow overflow-hidden">
             <Toaster />
-        <img src={product_img} className="w-[180px] h-[180px] object-contain center lg:w-[180px] lg:h-[180px]"/>
-        <h1 className="font-semibold text-lg lg:text-[20px]">${price}</h1>
-        <h1 className="line-through scale-90">${(price*1.2).toFixed(2)}</h1>
-        <div className="flex gap-1">
-            <h1 className="bg-blue-500 px-1 text-sm text-white font-bold rounded-sm">You Save</h1>
-            <h1 className="text-sm font-bold"> ${(price*0.2).toFixed(2)}</h1>
-        </div>
-        <h1 className="text-nowrap block w-fit center text-sm lg:text-lg">{title}</h1>
-        
+            <div className="p-3 flex items-center justify-center h-40 sm:h-44">
+                <img src={product_img} alt={title} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200" />
+            </div>
 
-        {
-            inCart? (
-                <div className="flex gap-4 items-center">
-                    <button className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-blue-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold"
-                    onClick={()=>handleRemoveItem(content._id)}>
-                        <Minus size={14} />
-                    </button>
-                    <h1 className="block w-fit font-bold text-lg">{inCart.quantity}</h1>
-                    <button className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-blue-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold"
-                    onClick={()=>handleAddItem(content._id)}>
-                        <Plus size={14} />
-                    </button>
+            <div className="px-3 pb-3 flex flex-col flex-1">
+                <h3 className="text-sm text-gray-800 leading-snug line-clamp-2 min-h-[2.5rem]">{title}</h3>
+
+                <div className="flex items-center gap-2 mt-1.5 mb-1">
+                    <span className="inline-flex items-center gap-0.5 bg-green-600 text-white text-[11px] font-bold px-1.5 py-0.5 rounded">
+                        {rate} <Star size={9} className="fill-white" />
+                    </span>
+                    <span className="text-[11px] text-gray-400 font-medium">({reviews})</span>
                 </div>
-                
-            )
-            :
-            <button className="bg-[#0053E2] text-white font-bold py-3 px-5 rounded-full mt-2 flex justify-center items-center gap-2"
-            onClick={()=>handleAddItem(content._id)}>
-            <img src={plus_icon} className="w-[15px] h-[15px]"/>
-             Add
-            </button>
-        }
+
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-3">
+                    <span className="text-base font-bold text-gray-900">${price}</span>
+                    <span className="text-xs text-gray-400 line-through">${mrp.toFixed(0)}</span>
+                    <span className="text-xs font-bold text-green-700">{off}% off</span>
+                </div>
+
+                <div className="mt-auto">
+                    {inCart ? (
+                        <div className="flex items-center justify-between border-2 border-[#2874F0] rounded overflow-hidden">
+                            <button className="w-9 h-9 flex items-center justify-center text-[#2874F0] hover:bg-blue-50"
+                                onClick={() => handleRemoveItem(content)}>
+                                <Minus size={16} />
+                            </button>
+                            <span className="font-bold text-sm text-gray-900">{inCart.quantity}</span>
+                            <button className="w-9 h-9 flex items-center justify-center text-[#2874F0] hover:bg-blue-50"
+                                onClick={() => handleAddItem(content)}>
+                                <Plus size={16} />
+                            </button>
+                        </div>
+                    ) : (
+                        <button className="w-full bg-[#ff9f00] hover:bg-[#f39200] text-white font-bold py-2 rounded flex justify-center items-center gap-1.5 text-sm shadow-sm transition-colors"
+                            onClick={() => handleAddItem(content)}>
+                            <Plus size={16} /> ADD
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }

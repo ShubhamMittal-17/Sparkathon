@@ -6,7 +6,7 @@ export const GeneratedMap = ({items}) => {
     let [mapUrl,setMapUrl] = useState(null);
 
     useEffect(() => {
-        fetch("http://127.0.0.1:5000/api/path_image", {
+        fetch("http://127.0.0.1:5001/api/path_image", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
