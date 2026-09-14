@@ -2,7 +2,7 @@
 
 A smart shopping web app that turns an online cart into an **optimal in-store walking route** and surfaces **content-based product recommendations**. Built for a Walmart Sparkathon-style challenge.
 
-The big idea: you build your cart online, and the app computes the shortest path through the physical store to collect every item and leave fast — rendered as a live, arrow-by-arrow map over the store floor plan. Alongside it, a recommender suggests similar products so you discover what you need without wandering.
+The big idea: you build your cart online, and the app computes the shortest path through the physical store to collect every item and leave fast rendered as a live, arrow-by-arrow map over the store floor plan. Alongside it, a recommender suggests similar products so you discover what you need without wandering.
 
 ---
 
